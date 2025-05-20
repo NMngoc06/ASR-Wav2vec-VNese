@@ -9,16 +9,27 @@ class DefaultCollate:
     def __init__(self, processor, sr) -> None:
         self.processor = processor
         self.sr = sr
-    def __call__(self, batch):
-        transcripts = [item["transcript"] for item in batch]
+    def __call__(self, inputs) -> Dict[str, torch.tensor]:
+        features, transcripts = zip(*inputs)
+        features = list(features)
+        transcripts = list(transcripts)
 
-        # Chỉ truyền padding một lần:
-        labels_batch = self.processor(
-            transcripts,
-            padding="longest",   # hoặc padding=True
-            return_tensors="pt"
+        # Xử lý phần audio (features) với feature extractor
+        batch = self.processor.feature_extractor(
+            features, sampling_rate=16000, padding=True, return_tensors="pt", return_attention_mask=True
         )
-        return labels_batch
+
+        # Xử lý phần text (transcripts) với tokenizer
+        with self.processor.as_target_processor():
+            labels_batch = self.processor.tokenizer(
+                transcripts, padding=True, return_tensors="pt"
+            )
+
+        # Tạo labels, thay thế phần padding bằng -100 để ignore khi tính loss
+        batch["labels"] = labels_batch.input_ids.masked_fill(labels_batch.attention_mask.ne(1), -100)
+
+        return batch
+
 
 
 class Dataset:
