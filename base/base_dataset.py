@@ -61,6 +61,11 @@ class BaseDataset(Dataset):
             all_text = all_text.replace(v, '')
         vocab_list = list(set(all_text))
         vocab_list.sort()
+        if "<" not in vocab_list:
+            vocab_list.append("<")
+        if ">" not in vocab_list:
+            vocab_list.append(">")
+        vocab_list.sort()
         vocab_dict = {v: k for k, v in enumerate(vocab_list)}
 
         vocab_dict["|"] = vocab_dict[" "]
