@@ -68,10 +68,10 @@ class BaseTrainer:
         # save processor
         self.processor.save_pretrained(config["huggingface"]["args"]["local_dir"])
 
-        if preload is not None:
-            self._preload_model(preload)
         if resume:
             self._resume_checkpoint()
+        elif preload is not None:
+            self._preload_model(preload)
 
         if self.rank == 0:
             self.writer = TensorboardWriter(self.log_dir)
