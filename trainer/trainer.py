@@ -151,12 +151,12 @@ class Trainer(BaseTrainer):
             # Save best
             if self._is_best_epoch(val_logs['wer'], save_max_metric_score=self.save_max_metric_score):
                 self._save_checkpoint(epoch, is_best_epoch=True)
-            else:
-                self._save_checkpoint(epoch, is_best_epoch=False)
+            
         self.dist.barrier()  # see https://stackoverflow.com/questions/59760328/how-does-torch-distributed-barrier-work
 
 
         # Reset
+        self.dist.barrier()
         self.pbar_step = 0
             
     def _valid_epoch(self, epoch) -> Dict[str, Union[Any, float]]:
@@ -171,6 +171,9 @@ class Trainer(BaseTrainer):
             with torch.no_grad():
                 with autocast(enabled = self.use_amp):
                     outputs = self.model(**batch)
+            if torch.isinf(outputs.loss):
+                print("Batch gây lỗi:", batch)
+                continue
 
             val_logs["loss"] += outputs.loss / len(self.val_dl)
             val_logs["wer"] += torch.tensor(self.compute_metric(outputs.logits, batch['labels'])) / len(self.val_dl)
