@@ -131,12 +131,15 @@ class BaseTrainer:
         """
         Resume experiment from the latest checkpoint.
         """
-        latest_model_path = os.path.join(self.save_dir, "latest_model.tar")
-        print("Loading model from ", latest_model_path)
-        assert os.path.exists(latest_model_path), f"{latest_model_path} does not exist, can not load latest checkpoint."
-
-        map_location = {'cuda:%d' % 0: 'cuda:%d' % self.rank}
-        checkpoint = torch.load(latest_model_path, map_location=map_location)
+        # Ưu tiên checkpoint truyền từ --preload (self.preload)
+        if self.preload is not None:
+            checkpoint_path = self.preload
+        else:
+            checkpoint_path = os.path.join(self.save_dir, "latest_model.tar")
+        assert os.path.exists(checkpoint_path), f"{checkpoint_path} does not exist, can not load checkpoint."
+        print(f"Loading checkpoint from {checkpoint_path}")
+        checkpoint = torch.load(checkpoint_path, map_location='cpu')
+        # ...phần còn lại giữ nguyên...
         
         self.start_epoch = checkpoint["epoch"] + 1
         self.completed_steps = checkpoint["completed_steps"] + 1
