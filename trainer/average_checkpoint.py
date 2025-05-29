@@ -42,7 +42,7 @@ def main():
     checkpoints = []
     val_scores = []
 
-    path_list = glob.glob('{}/model_[0-9]*.tar'.format(args.src_path))
+    path_list = glob.glob('{}/model_[0-9]*.pth'.format(args.src_path))
     # path_list = sorted(path_list)
     path_list = sorted(path_list, key=os.path.getmtime)
     path_list = path_list[-args.num:]
@@ -78,7 +78,7 @@ def main():
             avg[k] = torch.true_divide(avg[k], num)
     
     state_dict['model'] = avg
-    dst_model = os.path.join(args.src_path, f"avg_{num}.tar")
+    dst_model = os.path.join(args.src_path, f"avg_{num}.pth")
     print('Saving to {}'.format(dst_model))
     torch.save(state_dict, dst_model)
 
