@@ -115,7 +115,7 @@ def main(rank, world_size, config, resume, preload):
         sampler = val_sampler,
         collate_fn=default_collate
     )
-    
+
 
     # Load pretrained model
     model = Wav2Vec2ForCTC.from_pretrained(
@@ -123,7 +123,8 @@ def main(rank, world_size, config, resume, preload):
         ctc_loss_reduction="sum", 
         pad_token_id=processor.tokenizer.pad_token_id,
         vocab_size=len(processor.tokenizer),
-        gradient_checkpointing=False)
+        gradient_checkpointing=False
+    )
     
     # freeze the wav2vec feature encoder, if you have small dataset, this helps a lot
     model.freeze_feature_encoder()
@@ -197,4 +198,3 @@ if __name__ == '__main__':
         nprocs = n_gpus,
         join = True
     )
-
