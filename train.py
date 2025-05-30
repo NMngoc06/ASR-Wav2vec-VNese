@@ -115,14 +115,7 @@ def main(rank, world_size, config, resume, preload):
         sampler = val_sampler,
         collate_fn=default_collate
     )
-    model = Wav2Vec2ForCTC.from_pretrained(
-    config["huggingface"]["args"]["local_dir"],   # đường dẫn tới huggingface_hub
-    ctc_loss_reduction="sum",
-    pad_token_id=processor.tokenizer.pad_token_id,
-    vocab_size=len(processor.tokenizer),
-    gradient_checkpointing=False
-    )
-
+    
 
     # Load pretrained model
     model = Wav2Vec2ForCTC.from_pretrained(
