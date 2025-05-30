@@ -68,10 +68,10 @@ class BaseTrainer:
         # save processor
         self.processor.save_pretrained(config["huggingface"]["args"]["local_dir"])
 
+        if preload is not None:
+            self._preload_model(preload)
         if resume:
             self._resume_checkpoint()
-        elif preload is not None:
-            self._preload_model(preload)
 
         if self.rank == 0:
             self.writer = TensorboardWriter(self.log_dir)
@@ -131,15 +131,12 @@ class BaseTrainer:
         """
         Resume experiment from the latest checkpoint.
         """
-        # Ưu tiên checkpoint truyền từ --preload (self.preload)
-        if self.preload is not None:
-            checkpoint_path = self.preload
-        else:
-            checkpoint_path = os.path.join(self.save_dir, "latest_model.pth")
-        assert os.path.exists(checkpoint_path), f"{checkpoint_path} does not exist, can not load checkpoint."
-        print(f"Loading checkpoint from {checkpoint_path}")
-        checkpoint = torch.load(checkpoint_path, map_location='cpu')
-        # ...phần còn lại giữ nguyên...
+        latest_model_path = os.path.join(self.save_dir, "latest_model.tar")
+        print("Loading model from ", latest_model_path)
+        assert os.path.exists(latest_model_path), f"{latest_model_path} does not exist, can not load latest checkpoint."
+
+        map_location = {'cuda:%d' % 0: 'cuda:%d' % self.rank}
+        checkpoint = torch.load(latest_model_path, map_location=map_location)
         
         self.start_epoch = checkpoint["epoch"] + 1
         self.completed_steps = checkpoint["completed_steps"] + 1
@@ -184,17 +181,17 @@ class BaseTrainer:
         # "latest_model.tar"
         # Contains all checkpoint information, including the optimizer parameters, the model parameters, etc.
         # New checkpoint will overwrite the older one.
-        torch.save(state_dict, os.path.join(self.save_dir, "latest_model.pth"))
+        torch.save(state_dict, os.path.join(self.save_dir, "latest_model.tar"))
 
         # "model_{epoch_number}.tar"
         # Contains all checkpoint information, like "latest_model.tar". However, the newer information will no overwrite the older one.
-        torch.save(state_dict, os.path.join(self.save_dir, f"model_{str(epoch)}.pth"))
+        torch.save(state_dict, os.path.join(self.save_dir, f"model_{str(epoch)}.tar"))
 
         # If the model get a best metric score (is_best_epoch=True) in the current epoch,
         # the model checkpoint will be saved as "best_model.tar."
         # The newer best-scored checkpoint will overwrite the older one.
         if is_best_epoch:
-            torch.save(state_dict, os.path.join(self.save_dir, "best_model.pth"))
+            torch.save(state_dict, os.path.join(self.save_dir, "best_model.tar"))
             if isinstance(self.model, torch.nn.parallel.DistributedDataParallel):
                 self.model.module.save_pretrained(self.config["huggingface"]["args"]["local_dir"])
             else:
